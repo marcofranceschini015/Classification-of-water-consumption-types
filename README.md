@@ -1,1 +1,1 @@
-# intelligent-system-project
+# Intelligent System Project
