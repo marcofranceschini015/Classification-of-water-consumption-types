@@ -94,6 +94,8 @@ class Discriminator(nn.Module):
 # Parâmetros
 input_size = features.size(1)
 output_size = len(le_consumer_number.classes_)
+
+print(input_size)
 latent_size = 10
 lr = 0.01
 epochs = 50
@@ -147,7 +149,7 @@ for epoch in range(epochs):
         print(f'Epoch [{epoch+1}/{epochs}], Generator Loss: {generator_loss.item()}, Discriminator Loss: {real_loss.item() + fake_loss.item()}')
 
 # Gerar dados sintéticos
-num_synthetic_samples = 500
+num_synthetic_samples = 100
 latent_noise = torch.randn(num_synthetic_samples, latent_size)
 synthetic_data = generator(latent_noise)
 
@@ -157,7 +159,7 @@ generated_consumer_numbers = le_consumer_number.inverse_transform(torch.argmax(s
 # Concatenar dados sintéticos com dados originais
 synthetic_features = synthetic_data
 all_features = torch.cat([features, synthetic_features], dim=0)
-all_consumer_numbers = torch.cat([consumer_number, torch.tensor(le_consumer_number.transform(generated_consumer_numbers))], dim=0)
+all_consumer_numbers = torch.tensor(le_consumer_number.transform(generated_consumer_numbers))
 
 # Agora, "all_features" e "all_consumer_numbers" contêm o conjunto de dados balanceado
 # Você pode usar esses dados para treinar seu classificador PyTorch
@@ -167,10 +169,12 @@ all_consumer_numbers_np = all_consumer_numbers.numpy()
 
 # Criar um DataFrame
 columns = ['Year', 'Month', 'Consumption', 'Installation_zone', 'Generated_Consumer_number']
-data = pd.DataFrame(data=np.concatenate([all_features_np, all_consumer_numbers_np.reshape(-1, 1)], axis=1), columns=columns)
+# data = pd.DataFrame(data=synthetic_data.detach().numpy, columns=columns)
+newData = pd.DataFrame(data=synthetic_data.detach().numpy(), columns=columns)
+newData['Generated_Consumer_number'] = generated_consumer_numbers
 
 # Visualizar o DataFrame
-print(data.head(100))
+print(newData.head(20))
 
 plt.figure(figsize=(10, 5))
 plt.plot(generator_losses, label='Generator Loss')
@@ -180,3 +184,35 @@ plt.ylabel('Loss')
 plt.legend()
 plt.title('GAN Training Losses')
 plt.show()
+
+year_tensor = torch.tensor(year, dtype=torch.float32)
+month_tensor = torch.tensor(month, dtype=torch.float32)
+consumption_tensor = torch.tensor(consumption, dtype=torch.float32)
+consumer_number_tensor = torch.tensor(consumer_number, dtype=torch.float32)
+installation_zone_tensor = torch.tensor(installation_zone, dtype=torch.float32)
+
+# Calcular a média e o desvio padrão
+mean_values = torch.tensor([
+    torch.mean(year_tensor),
+    torch.mean(month_tensor),
+    torch.mean(consumption_tensor),
+    torch.mean(consumer_number_tensor),
+    torch.mean(installation_zone_tensor)
+])
+
+std_values = torch.tensor([
+    torch.std(year_tensor),
+    torch.std(month_tensor),
+    torch.std(consumption_tensor),
+    torch.std(consumer_number_tensor),
+    torch.std(installation_zone_tensor)
+])
+
+# Desnormalização
+desnormalized_data = newData * std_values + mean_values
+
+# Resultados
+print("Dados Normalizados:")
+print(synthetic_data)
+print("\nDados Desnormalizados:")
+print(desnormalized_data)
