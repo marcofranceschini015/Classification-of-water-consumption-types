@@ -1,3 +1,3 @@
 # Intelligent System Project
 
-## Classification of Water Consumption Types Analysis
+## Classification of Water Consumption Types
